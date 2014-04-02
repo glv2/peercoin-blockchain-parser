@@ -32,8 +32,8 @@ First, load the parser package:
 
 To export the data from the blockchain to a SQL script:
 
-    (peercoin-blockchain-parser:bockchain-to-sql "blk0001.dat" "peercoin-blockchain.sql")
+    (peercoin-blockchain-parser:blockchain-to-sql "blk0001.dat" "peercoin-blockchain.sql")
 
 To export the data from the blockchain to a text file:
 
-    (peercoin-blockchain-parser:bockchain-to-txt "blk0001.dat" "peercoin-blockchain.txt")
+    (peercoin-blockchain-parser:blockchain-to-txt "blk0001.dat" "peercoin-blockchain.txt")
