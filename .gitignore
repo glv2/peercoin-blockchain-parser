@@ -1,0 +1,6 @@
+*.fasl
+*.FASL
+*.lisp-temp
+
+test/blk*.sql
+test/blk*.txt
