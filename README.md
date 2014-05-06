@@ -1,5 +1,5 @@
 Peercoin blockchain parser
-===
+==========================
 
 ## Details
 
@@ -37,3 +37,7 @@ To export the data from the blockchain to a SQL script:
 To export the data from the blockchain to a text file:
 
     (peercoin-blockchain-parser:blockchain-to-txt "blk0001.dat" "peercoin-blockchain.txt")
+
+## Donations
+
+If you find this program useful and want to make a donation, you can send coins to the following Peercoin address: **PWFNV1Cvq7nQBRyRueuYzwmDNXUGpgNkBC**.
