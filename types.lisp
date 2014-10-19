@@ -16,8 +16,17 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 |#
 
 
-(defpackage peercoin-blockchain-parser
-  (:use cl)
-  (:export blockchain-to-sql
-           blockchain-to-txt
-           pgsql-update-database-from-rpc))
+(in-package :peercoin-blockchain-parser)
+
+
+(defmacro make-class (name slots)
+  `(defclass ,name ()
+     ,(mapcar #'(lambda (x) `(,x :accessor , x)) slots)))
+
+(make-class input (transaction-hash transaction-index script-length script sequence-number))
+
+(make-class output (index value script-length script))
+
+(make-class transaction (hash version timestamp input-count inputs output-count outputs lock-time))
+
+(make-class blk (hash header-length version previous-hash merkle-root timestamp bits nonce transaction-count transactions))

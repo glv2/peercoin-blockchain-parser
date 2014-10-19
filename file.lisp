@@ -47,19 +47,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
           ((= d 255) (read-unsigned-integer stream 8)))))
 
 
-;;; Hash functions
-
-(defun sha256 (data)
-  "Compute the sha256 hash of the byte sequence DATA."
-  (ironclad:digest-sequence :sha256 data))
-
-(defun sha256d (data)
-  "Compute the double sha256 hash of the byte sequence DATA."
-  (sha256 (sha256 data)))
-
-(defun ripemd160 (data)
-  "Compute the ripemd160 hash of the byte sequence DATA."
-  (ironclad:digest-sequence :ripemd-160 data))
+;;; Hash
 
 (defun compute-data-hash (stream offset length)
   "Compute the double sha256 hash of LENGTH bytes of data from STREAM after skipping OFFSET bytes from STREAM."
@@ -69,40 +57,10 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
     (sha256d data)))
 
 
-;;; Default callbacks (do nothing)
-
-(defparameter chain-start (lambda ()))
-(defparameter block-start (lambda ()))
-(defparameter transactions-start (lambda ()))
-(defparameter transaction-start (lambda ()))
-(defparameter inputs-start (lambda ()))
-(defparameter input-start (lambda ()))
-(defparameter input-end (lambda (input) (declare (ignore input))))
-(defparameter inputs-end (lambda ()))
-(defparameter outputs-start (lambda ()))
-(defparameter output-start (lambda ()))
-(defparameter output-end (lambda (output) (declare (ignore output))))
-(defparameter outputs-end (lambda ()))
-(defparameter transaction-end (lambda (transaction) (declare (ignore transaction))))
-(defparameter transactions-end (lambda ()))
-(defparameter block-end (lambda (blk) (declare (ignore blk))))
-(defparameter chain-end (lambda (block-hashes) (declare (ignore block-hashes))))
-
-
 ;;; Objects
-
-(defmacro make-class (name slots)
-  `(defclass ,name ()
-     ,(mapcar #'(lambda (x) `(,x :accessor , x)) slots)))
 
 (defgeneric read-object (object stream)
   (:documentation "Read an OBJECT from a STREAM."))
-
-(make-class input (transaction-hash
-                   transaction-index
-                   script-length
-                   script
-                   sequence-number))
 
 (defmethod read-object ((object input) stream)
   (with-slots (transaction-hash transaction-index script-length script sequence-number) object
@@ -112,25 +70,11 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
           script (read-bytes stream script-length)
           sequence-number (read-unsigned-integer stream 4))))
 
-(make-class output (index
-                    value
-                    script-length
-                    script))
-
 (defmethod read-object ((object output) stream)
   (with-slots (value script-length script) object
     (setf value (read-unsigned-integer stream 8)
           script-length (read-variable-length-unsigned-integer stream)
           script (read-bytes stream script-length))))
-
-(make-class transaction (hash
-                         version
-                         timestamp
-                         input-count
-                         inputs
-                         output-count
-                         outputs
-                         lock-time))
 
 (defmethod read-object ((object transaction) stream)
   (with-slots (version timestamp input-count inputs output-count outputs lock-time) object
@@ -157,27 +101,8 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
     (funcall outputs-end)
     (setf lock-time (read-unsigned-integer stream 4))))
 
-(make-class blk (hash
-                 header-length
-                 version
-                 previous-hash
-                 merkle-root
-                 timestamp
-                 bits
-                 nonce
-                 transaction-count
-                 transactions))
-
 (defmethod read-object ((object blk) stream)
-  (with-slots (header-length
-               version
-               previous-hash
-               merkle-root
-               timestamp
-               bits
-               nonce
-               transaction-count
-               transactions)
+  (with-slots (header-length version previous-hash merkle-root timestamp bits nonce transaction-count transactions)
       object
     (setf header-length (read-unsigned-integer stream 4)
           version (read-unsigned-integer stream 4)
@@ -248,47 +173,3 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
           (return))
         (file-position stream (- position 5))) ; Before magic ID
       (funcall chain-end block-hashes))))
-
-
-;;; Utilities
-
-(defconstant +peercoin-version-byte+ 55)
-(defconstant +base58-symbols+ "123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz")
-
-(defun pretty-print-hash (hash)
-  "Make a string containing the big-endian hexadecimal representation of the little-endian byte array HASH."
-  (when hash
-    (reduce #'(lambda (x y) (concatenate 'string y x))
-            (map 'vector
-                 #'(lambda (x) (string-downcase (format nil "~2,'0x" x)))
-                 hash))))
-
-(defun base58-encode (data)
-  "Make a string containing the base58 encoding of the DATA."
-  (let ((x 0)
-        (len (length data))
-        address)
-    (dotimes (i len)
-      (setf (ldb (byte 8 (* 8 i)) x) (aref data (- len 1 i))))
-    
-    (loop
-       :while (plusp x)
-       :do (multiple-value-bind (q r) (floor x 58)
-             (setf x q)
-             (push (elt +base58-symbols+ r) address)))
-
-    (loop
-       :for i :from (1- len) :downto 0
-       :while (zerop (aref data i))
-       :do (push (elt +base58-symbols+ 0) address))
-
-    (coerce address 'string)))
-
-(defun pretty-print-address (hash)
-  "Make a string containing the base58 encoding of an address given its HASH."
-  (when hash
-    (let ((script (vector +peercoin-version-byte+)))
-      (setf script (concatenate 'vector script hash))
-      (setf script (coerce script '(vector (unsigned-byte 8))))
-      (setf script (concatenate 'vector script (subseq (sha256d (subseq script 0 21)) 0 4)))
-      (base58-encode script))))

@@ -151,7 +151,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
               (= (aref script 0) 65) ; op pushdata 65
               (= (aref script (- (length script) 1)) +op-checksig+))
          (let ((key (subseq script 1 66)))
-           (ripemd160 (sha256d key))))
+           (ripemd160 (sha256 key))))
 
         ((and (= (length script) 35)
               (= (aref script 0) 33) ; op pushdata 33

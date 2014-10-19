@@ -16,8 +16,17 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 |#
 
 
-(defpackage peercoin-blockchain-parser
-  (:use cl)
-  (:export blockchain-to-sql
-           blockchain-to-txt
-           pgsql-update-database-from-rpc))
+(in-package :peercoin-blockchain-parser)
+
+
+(defun sha256 (data)
+  "Compute the sha256 hash of the byte sequence DATA."
+  (ironclad:digest-sequence :sha256 data))
+
+(defun sha256d (data)
+  "Compute the double sha256 hash of the byte sequence DATA."
+  (sha256 (sha256 data)))
+
+(defun ripemd160 (data)
+  "Compute the ripemd160 hash of the byte sequence DATA."
+  (ironclad:digest-sequence :ripemd-160 data))

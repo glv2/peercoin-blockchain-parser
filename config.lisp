@@ -16,8 +16,13 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 |#
 
 
-(defpackage peercoin-blockchain-parser
-  (:use cl)
-  (:export blockchain-to-sql
-           blockchain-to-txt
-           pgsql-update-database-from-rpc))
+(in-package :peercoin-blockchain-parser)
+
+
+(defparameter *rpc-server-url* "http://127.0.0.1:9902/")
+(defparameter *rpc-username* "username")
+(defparameter *rpc-password* "password")
+
+(defparameter *pgsql-database* "peercoin")
+(defparameter *pgsql-username* "username")
+(defparameter *pgsql-password* "password")

@@ -16,22 +16,22 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 |#
 
 
-(defpackage :peercoin-blockchain-parser-system
-  (:use :cl :asdf))
-
-
-(in-package :peercoin-blockchain-parser-system)
-
-
 (defsystem :peercoin-blockchain-parser
     :name "peercoin-blockchain-parser"
     :description "Peercoin blockchain parser"
-    :version "0.1"
+    :version "0.2"
     :author "Guillaume LE VAILLANT"
     :license "GPL-3"
-    :depends-on (:ironclad)
-    :components ((:file "package")
-                 (:file "parser" :depends-on ("package"))
-                 (:file "script" :depends-on ("package"))
-                 (:file "sql" :depends-on ("package" "parser" "script"))
-                 (:file "txt" :depends-on ("package" "parser" "script"))))
+    :depends-on (:cl-json :dbi :drakma :flexi-streams :ironclad :local-time)
+    :components ((:file "callbacks" :depends-on ("package"))
+                 (:file "config" :depends-on ("package"))
+                 (:file "file" :depends-on ("callbacks" "hash" "package" "types"))
+                 (:file "hash" :depends-on ("package"))
+                 (:file "package")
+                 (:file "pgsql" :depends-on ("callbacks" "config" "package" "rpc" "script" "types" "utils"))
+                 (:file "rpc" :depends-on ("callbacks" "config" "hash" "package" "types"))
+                 (:file "script" :depends-on ("hash" "package"))
+                 (:file "sql" :depends-on ("callbacks" "file" "package" "script" "types" "utils"))
+                 (:file "txt" :depends-on ("callbacks" "file" "package" "script" "types" "utils"))
+                 (:file "types" :depends-on ("package"))
+                 (:file "utils" :depends-on ("hash" "package"))))
