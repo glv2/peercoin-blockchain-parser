@@ -50,6 +50,11 @@ To update a database using a running Peercoin daemon:
 
     (peercoin-blockchain-parser:rdbms-update-database-from-rpc)
 
+To create a database from scratch using a running Peercoin daemon:
+
+    (peercoin-blockchain-parser:rdbms-initialize-database)
+    (peercoin-blockchain-parser:rdbms-update-database-from-rpc)
+
 ## Donations
 
 If you find this program useful and want to make a donation, you can send coins to the following Peercoin address: **PWFNV1Cvq7nQBRyRueuYzwmDNXUGpgNkBC**.

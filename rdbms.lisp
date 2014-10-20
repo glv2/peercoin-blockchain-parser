@@ -27,7 +27,10 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
     (let (query result)
       (setf query (dbi:prepare database "SELECT max(height) FROM blocks;"))
       (setf result (dbi:execute query))
-      (getf (dbi:fetch result) :|max|))))
+      (setf result (getf (dbi:fetch result) :|max|))
+      (unless (integerp result)
+        (setf result -1))
+      result)))
 
 (defun rdbms-get-max-id (table)
   (dbi:with-connection (database *rdbms-driver*
@@ -37,7 +40,25 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
     (let (query result)
       (setf query (dbi:prepare database (format nil "SELECT max(id) FROM ~a;" table)))
       (setf result (dbi:execute query))
-      (getf (dbi:fetch result) :|max|))))
+      (setf result (getf (dbi:fetch result) :|max|))
+      (unless (integerp result)
+        (setf result -1))
+      result)))
+
+(defun rdbms-initialize-database ()
+  (dbi:with-connection (database *rdbms-driver*
+                                 :database-name *rdbms-database*
+                                 :username *rdbms-username*
+                                 :password *rdbms-password*)
+    (dbi:do-sql database "DROP TABLE IF EXISTS blocks")
+    (dbi:do-sql database "DROP TABLE IF EXISTS transactions")
+    (dbi:do-sql database "DROP TABLE IF EXISTS inputs")
+    (dbi:do-sql database "DROP TABLE IF EXISTS outputs")
+    (dbi:do-sql database "CREATE TABLE blocks (id BIGINT PRIMARY KEY, height BIGINT, hash CHAR(64), timestamp BIGINT, bits BIGINT, nonce BIGINT)")
+    (dbi:do-sql database "CREATE TABLE transactions (id BIGINT PRIMARY KEY, block_id BIGINT, hash CHAR(64), timestamp BIGINT)")
+    (dbi:do-sql database "CREATE TABLE inputs (id BIGINT PRIMARY KEY, transaction_id BIGINT, transaction_hash CHAR(64), transaction_index BIGINT)")
+    (dbi:do-sql database "CREATE TABLE outputs (id BIGINT PRIMARY KEY, transaction_id BIGINT, index BIGINT, value BIGINT, address CHAR(36))")
+    (dbi:do-sql database "CREATE INDEX addr_index ON outputs (address)")))
 
 (defun rdbms-update-database-from-rpc ()
   (dbi:with-connection (database *rdbms-driver*
@@ -50,6 +71,8 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
           (transaction-id (1+ (rdbms-get-max-id "transactions")))
           (input-id (1+ (rdbms-get-max-id "inputs")))
           (output-id (1+ (rdbms-get-max-id "outputs"))))
+      (when (= n -1)
+        (incf n)) ; The Peercoin daemon can't give all info on genesis block, so skip it
       (do (blk
            (query1 (dbi:prepare database "INSERT INTO blocks (id, height, hash, timestamp, bits, nonce) VALUES (?, ?, ?, ?, ?, ?)"))
            (query2 (dbi:prepare database "INSERT INTO transactions (id, block_id, hash, timestamp) VALUES (?, ?, ?, ?)"))
