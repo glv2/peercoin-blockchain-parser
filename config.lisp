@@ -23,6 +23,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 (defparameter *rpc-username* "username")
 (defparameter *rpc-password* "password")
 
-(defparameter *pgsql-database* "peercoin")
-(defparameter *pgsql-username* "username")
-(defparameter *pgsql-password* "password")
+(defparameter *rdbms-driver* :postgres)
+(defparameter *rdbms-database* "peercoin")
+(defparameter *rdbms-username* "username")
+(defparameter *rdbms-password* "password")

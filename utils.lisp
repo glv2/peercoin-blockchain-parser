@@ -46,7 +46,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
             (push (elt +base58-symbols+ r) address)))
 
     (loop
-       for i from (1- len) downto 0
+       for i from 0 below len
        while (zerop (aref data i))
        do (push (elt +base58-symbols+ 0) address))
 

@@ -20,4 +20,4 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
   (:use cl)
   (:export blockchain-to-sql
            blockchain-to-txt
-           pgsql-update-database-from-rpc))
+           rdbms-update-database-from-rpc))

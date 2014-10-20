@@ -28,7 +28,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
                  (:file "file" :depends-on ("callbacks" "hash" "package" "types"))
                  (:file "hash" :depends-on ("package"))
                  (:file "package")
-                 (:file "pgsql" :depends-on ("callbacks" "config" "package" "rpc" "script" "types" "utils"))
+                 (:file "rdbms" :depends-on ("callbacks" "config" "package" "rpc" "script" "types" "utils"))
                  (:file "rpc" :depends-on ("callbacks" "config" "hash" "package" "types"))
                  (:file "script" :depends-on ("hash" "package"))
                  (:file "sql" :depends-on ("callbacks" "file" "package" "script" "types" "utils"))

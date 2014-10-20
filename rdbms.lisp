@@ -19,38 +19,37 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 (in-package :peercoin-blockchain-parser)
 
 
-(defun pgsql-get-block-count ()
-  (dbi:with-connection (database :postgres
-                                 :database-name *pgsql-database*
-                                 :username *pgsql-username*
-                                 :password *pgsql-password*)
+(defun rdbms-get-block-count ()
+  (dbi:with-connection (database *rdbms-driver*
+                                 :database-name *rdbms-database*
+                                 :username *rdbms-username*
+                                 :password *rdbms-password*)
     (let (query result)
       (setf query (dbi:prepare database "SELECT max(height) FROM blocks;"))
       (setf result (dbi:execute query))
       (getf (dbi:fetch result) :|max|))))
 
-(defun pgsql-get-max-id (table)
-  (dbi:with-connection (database :postgres
-                                 :database-name *pgsql-database*
-                                 :username *pgsql-username*
-                                 :password *pgsql-password*)
+(defun rdbms-get-max-id (table)
+  (dbi:with-connection (database *rdbms-driver*
+                                 :database-name *rdbms-database*
+                                 :username *rdbms-username*
+                                 :password *rdbms-password*)
     (let (query result)
       (setf query (dbi:prepare database (format nil "SELECT max(id) FROM ~a;" table)))
       (setf result (dbi:execute query))
       (getf (dbi:fetch result) :|max|))))
 
-(defun pgsql-update-database-from-rpc ()
-  (declare (optimize (debug 3)))
-  (dbi:with-connection (database :postgres
-                                 :database-name *pgsql-database*
-                                 :username *pgsql-username*
-                                 :password *pgsql-password*)
+(defun rdbms-update-database-from-rpc ()
+  (dbi:with-connection (database *rdbms-driver*
+                                 :database-name *rdbms-database*
+                                 :username *rdbms-username*
+                                 :password *rdbms-password*)
     (let ((max-block (rpc-get-block-count))
-          (n (pgsql-get-block-count))
-          (block-id (1+ (pgsql-get-max-id "blocks")))
-          (transaction-id (1+ (pgsql-get-max-id "transactions")))
-          (input-id (1+ (pgsql-get-max-id "inputs")))
-          (output-id (1+ (pgsql-get-max-id "outputs"))))
+          (n (rdbms-get-block-count))
+          (block-id (1+ (rdbms-get-max-id "blocks")))
+          (transaction-id (1+ (rdbms-get-max-id "transactions")))
+          (input-id (1+ (rdbms-get-max-id "inputs")))
+          (output-id (1+ (rdbms-get-max-id "outputs"))))
       (do (blk
            (query1 (dbi:prepare database "INSERT INTO blocks (id, height, hash, timestamp, bits, nonce) VALUES (?, ?, ?, ?, ?, ?)"))
            (query2 (dbi:prepare database "INSERT INTO transactions (id, block_id, hash, timestamp) VALUES (?, ?, ?, ?)"))
