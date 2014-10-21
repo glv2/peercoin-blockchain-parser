@@ -19,31 +19,35 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 (in-package :peercoin-blockchain-parser)
 
 
-(defun blockchain-to-txt (blockchain-file txt-file)
-  "Export the data from the blockchain in BLOCKCHAIN-FILE to a TXT-FILE."
+(defun txt-make-file-from-blockchain (txt-file)
+  "Export the data from the blockchain to a TXT-FILE."
   (with-open-file (txt txt-file :direction :output :if-exists :supersede)
     (let* ((block-id 0)
            (transaction-id 0)
            (input-id 0)
            (output-id 0)
 
-           (block-end
+           (block-callback
             (lambda (blk)
               "Print block, transaction, inputs and outputs."
               (format txt "block: ~a~%  previous block: ~a~%  timestamp: ~d~%  bits: ~d~%  nonce: ~d~%  transactions: ~d~%" (pretty-print-hash (hash blk)) (pretty-print-hash (previous-hash blk)) (timestamp blk) (bits blk) (nonce blk) (transaction-count blk))
+
               (dotimes (i (transaction-count blk))
                 (let ((transaction (aref (transactions blk) i)))
                   (format txt "  transaction: ~a~%    timestamp: ~d~%    inputs: ~d~%    outputs: ~d~%" (pretty-print-hash (hash transaction)) (timestamp transaction) (input-count transaction) (output-count transaction))
+
                   (dotimes (j (input-count transaction))
                     (let ((input (aref (inputs transaction) j)))
                       (format txt "    input~%      transaction: ~a~%      index: ~d~%" (pretty-print-hash (transaction-hash input)) (transaction-index input))
                       (incf input-id)))
+
                   (dotimes (j (output-count transaction))
                     (let ((output (aref (outputs transaction) j)))
                       (format txt "    output~%      index: ~d~%      value: ~d~%      address: ~a~%" (index output) (value output) (pretty-print-address (get-output-address (script output))))
                       (incf output-id)))
+
                   (incf transaction-id)))
               (incf block-id)
               (format txt "~%~%"))))
 
-      (parse-blockchain blockchain-file))))
+      (file-parse-blockchain nil block-callback nil))))

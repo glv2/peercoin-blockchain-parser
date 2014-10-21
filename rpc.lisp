@@ -20,6 +20,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 
 (defun rpc (command &optional parameters)
+  "Send a COMMAND with optional PARAMETERS to the Peercoin daemon."
   (let (answer auth json params)
     (setf auth (list *rpc-username* *rpc-password*))
     (setf params (cl-json:encode-json-to-string parameters))
@@ -35,6 +36,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
         (cdr (assoc :result answer)))))
 
 (defun rpc-get-transaction (h)
+  "Get a transaction using RPC given its hash."
   (let (result tx)
     (setf result (rpc "getrawtransaction" (list h 1)))
     (setf tx (make-instance 'transaction))
@@ -43,13 +45,13 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
       (setf hash (reverse (hex-to-bin h))
             version (cdr (assoc :version result))
             timestamp (cdr (assoc :time result))
-            lock-time (cdr (assoc :locktime result))
-            input-count (length (cdr (assoc :vin result)))
+            lock-time (cdr (assoc :locktime result)))
+
+      ;; Read inputs
+      (setf input-count (length (cdr (assoc :vin result)))
             inputs (make-array input-count))
-      (funcall inputs-start)
       (let ((i 0))
         (dolist (in (cdr (assoc :vin result)))
-          (funcall input-start)
           (setf (aref inputs i) (make-instance 'input))
           (with-slots (transaction-hash transaction-index script-length script sequence-number)
               (aref inputs i)
@@ -60,15 +62,13 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
                   sequence-number (cdr (assoc :sequence in)))
             (when (null transaction-index)
               (setf transaction-index 0)))
-          (funcall input-end (aref inputs i))
           (incf i)))
-      (funcall inputs-end)
+
+      ;; Read outputs
       (setf output-count (length (cdr (assoc :vout result)))
             outputs (make-array output-count))
-      (funcall outputs-start)
       (let ((i 0))
         (dolist (out (cdr (assoc :vout result)))
-          (funcall output-start)
           (setf (aref outputs i) (make-instance 'output))
           (with-slots (index value script-length script)
               (aref outputs i)
@@ -76,12 +76,11 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
                   value (floor (* 1000000 (cdr (assoc :value out))))
                   script-length (/ (length (cdr (assoc :hex (cdr (assoc :script-pub-key out))))) 2)
                   script (hex-to-bin (cdr (assoc :hex (cdr (assoc :script-pub-key out)))))))
-          (funcall output-end (aref outputs i))
-          (incf i)))
-      (funcall outputs-end))
+          (incf i))))
     tx))
 
 (defun rpc-get-block (h)
+  "Get a block using RPC given its hash."
   (let (result blk)
     (setf result (rpc "getblock" (list h)))
     (setf blk (make-instance 'blk))
@@ -98,23 +97,23 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
                                                  (subseq (cdr (assoc :time result)) 11 19)
                                                  "Z"))
             bits (parse-integer (cdr (assoc :bits result)) :radix 16)
-            nonce (cdr (assoc :nonce result))
-            transaction-count (length (cdr (assoc :tx result)))
+            nonce (cdr (assoc :nonce result)))
+
+      ;; Read transactions
+      (setf transaction-count (length (cdr (assoc :tx result)))
             transactions (make-array transaction-count))
-      (funcall transactions-start)
       (let ((i 0))
         (dolist (txhash (cdr (assoc :tx result)))
-          (funcall transaction-start)
           (setf (aref transactions i) (rpc-get-transaction txhash))
-          (funcall transaction-end (aref transactions i))
-          (incf i)))
-      (funcall transactions-end))
+          (incf i))))
     blk))
 
 (defun rpc-get-block-by-number (n)
+  "Get a block using RPC given its number."
   (let (h)
     (setf h (rpc "getblockhash" (list n)))
     (rpc-get-block h)))
 
 (defun rpc-get-block-count ()
+  "Get the number of blocks available in the Peercoin daemon."
   (rpc "getblockcount"))

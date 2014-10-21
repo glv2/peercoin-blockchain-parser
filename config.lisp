@@ -19,6 +19,8 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 (in-package :peercoin-blockchain-parser)
 
 
+(defparameter *file-blockchain* (merge-pathnames ".ppcoin/blk0001.dat" (user-homedir-pathname)))
+
 (defparameter *rpc-server-url* "http://127.0.0.1:9902/")
 (defparameter *rpc-username* "username")
 (defparameter *rpc-password* "password")

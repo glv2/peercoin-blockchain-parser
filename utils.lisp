@@ -20,7 +20,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 
 (defconstant +peercoin-version-byte+ 55)
-(defconstant +base58-symbols+ "123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz")
+(defparameter +base58-symbols+ "123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz")
 
 (defun pretty-print-hash (hash)
   "Make a string containing the big-endian hexadecimal representation of the little-endian byte array HASH."

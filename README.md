@@ -30,30 +30,31 @@ Written in Common Lisp.
 
 ## Configuration
 
-Edit the configuration file (config.lisp).
+Edit the configuration file (config.lisp) to indicate where to find the blockchain file, the Peercoin daemon and the database server.
 
 ## Start
 
 First, load the parser package:
 
-    (require :peercoin-blockchain-parser)
+    (require 'peercoin-blockchain-parser)
+    (in-package peercoin-blockchain-parser)
 
 To export the data from the blockchain to a SQL script:
 
-    (peercoin-blockchain-parser:blockchain-to-sql "blk0001.dat" "peercoin-blockchain.sql")
+    (sql-make-script-from-blockchain "peercoin-blockchain.sql")
 
 To export the data from the blockchain to a text file:
 
-    (peercoin-blockchain-parser:blockchain-to-txt "blk0001.dat" "peercoin-blockchain.txt")
+    (txt-make-file-from-blockchain "peercoin-blockchain.txt")
 
 To update a database using a running Peercoin daemon:
 
-    (peercoin-blockchain-parser:rdbms-update-database-from-rpc)
+    (rdbms-update-database-from-rpc)
 
 To create a database from scratch using a running Peercoin daemon:
 
-    (peercoin-blockchain-parser:rdbms-initialize-database)
-    (peercoin-blockchain-parser:rdbms-update-database-from-rpc)
+    (rdbms-initialize-database)
+    (rdbms-update-database-from-rpc)
 
 ## Donations
 
