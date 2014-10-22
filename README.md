@@ -1,11 +1,12 @@
 Peercoin blockchain parser
 ==========================
 
-## Details
+## Description
 
-This program parses the blockchain contained in a file and exports some of its data to another format.
+This program can parse the blockchain contained in a file and export some of its data to a text file, a SQL script or a database.
+It can also create a database using the RPC of a Peercoin daemon as source of data instead of a blockchain file.
 
-Written in Common Lisp.
+It is written in Common Lisp.
 
 ## Dependencies
 
