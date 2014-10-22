@@ -19,6 +19,9 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 (defpackage peercoin-blockchain-parser
   (:use cl)
   (:export txt-make-file-from-blockchain
+           rdbms-get-block-count
+           rdbms-get-balance
+           rdbms-get-rich-addresses
            rdbms-initialize-database
            rdbms-update-database-from-blockchain
            rdbms-update-database-from-rpc

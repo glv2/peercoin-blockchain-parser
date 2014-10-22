@@ -60,6 +60,14 @@ To update a database using the blockchain:
 
     (rdbms-update-database-from-blockchain)
 
+To get the balance of an address:
+
+    (rdbms-get-balance "PWFNV1Cvq7nQBRyRueuYzwmDNXUGpgNkBC")
+
+To get the list of the 20 richest addresses:
+
+    (rdbms-get-rich-addresses 20)
+
 ## Donations
 
 If you find this program useful and want to make a donation, you can send coins to the following Peercoin address: **PWFNV1Cvq7nQBRyRueuYzwmDNXUGpgNkBC**.

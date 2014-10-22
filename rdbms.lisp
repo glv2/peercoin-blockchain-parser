@@ -20,6 +20,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 
 (defun rdbms-initialize-database ()
+  "(Re)initialize the tables of the database."
   (dbi:with-connection (database *rdbms-driver*
                                  :database-name *rdbms-database*
                                  :username *rdbms-username*
@@ -35,6 +36,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
     (dbi:do-sql database "CREATE INDEX addr_index ON outputs (address)")))
 
 (defun rdbms-get-block-count ()
+  "Get the highest block number in the database."
   (dbi:with-connection (database *rdbms-driver*
                                  :database-name *rdbms-database*
                                  :username *rdbms-username*
@@ -48,6 +50,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
       result)))
 
 (defun rdbms-get-max-id (table)
+  "Get the highest id in a TABLE."
   (dbi:with-connection (database *rdbms-driver*
                                  :database-name *rdbms-database*
                                  :username *rdbms-username*
@@ -61,6 +64,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
       result)))
 
 (defun rdbms-update-database-from-rpc ()
+  "Update the database using the Peercoin daemon."
   (let ((max-block (rpc-get-block-count))
         (n (rdbms-get-block-count))
         (block-id (1+ (rdbms-get-max-id "blocks")))
@@ -102,6 +106,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
         (incf block-id)))))
 
 (defun rdbms-update-database-from-blockchain ()
+  "Update the database using the blockchain."
   (let ((n (rdbms-get-block-count))
         (block-id (1+ (rdbms-get-max-id "blocks")))
         (transaction-id (1+ (rdbms-get-max-id "transactions")))
@@ -153,3 +158,58 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
                                  (incf block-height))))))
 
         (file-parse-blockchain nil block-callback end-callback t)))))
+
+(defun rdbms-get-balance (address)
+  "Get the current balance of an ADDRESS."
+  (dbi:with-connection (database *rdbms-driver*
+                                 :database-name *rdbms-database*
+                                 :username *rdbms-username*
+                                 :password *rdbms-password*)
+    (let ((query1 (dbi:prepare database "SELECT * FROM outputs WHERE address = ?"))
+          (query2 (dbi:prepare database "SELECT o.* FROM inputs i, outputs o, transactions t WHERE t.id = ? AND o.transaction_id = ? AND i.transaction_index = ?  AND i.transaction_index = o.index AND i.transaction_hash = t.hash"))
+          (balance 0)
+          result
+          value
+          outputs)
+      ;; Get the outputs
+      (setf result (dbi:execute query1 address))
+      (loop
+         for row = (dbi:fetch result)
+         while row
+         do (progn
+              (push (cons (getf row :|transaction_id|) (getf row :|index|)) outputs)
+              (setf value (getf row :|value|))
+              (when value
+                (incf balance value))))
+
+      ;; Get the spent outputs
+      (dolist (output outputs)
+        (when (and (car output) (cdr output))
+          (setf result (dbi:execute query2 (car output) (car output) (cdr output)))
+          (setf value (getf (dbi:fetch result) :|value|))
+          (when value
+            (decf balance value))))
+
+      (setf balance (/ balance 1000000.0d0))
+      balance)))
+
+(defun rdbms-get-rich-addresses (&optional (n 10))
+  "Get the list of the N richest addresses."
+  (dbi:with-connection (database *rdbms-driver*
+                                 :database-name *rdbms-database*
+                                 :username *rdbms-username*
+                                 :password *rdbms-password*)
+    (let* ((query (dbi:prepare database "SELECT DISTINCT address FROM outputs"))
+           (result (dbi:execute query))
+           addresses
+           balances)
+      (setf addresses (loop
+                         for row = (dbi:fetch result)
+                         while row
+                         collect (getf row :|address|)))
+
+      (dolist (address addresses)
+        (push (cons address (rdbms-get-balance address)) balances))
+      (setf balances (sort balances #'(lambda (x y) (> (cdr x) (cdr y)))))
+
+      (subseq balances 0 (min n (length balances))))))
