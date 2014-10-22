@@ -32,7 +32,7 @@ Written in Common Lisp.
 
 Edit the configuration file (config.lisp) to indicate where to find the blockchain file, the Peercoin daemon and the database server.
 
-## Start
+## Usage
 
 First, load the parser package:
 
@@ -47,14 +47,18 @@ To export the data from the blockchain to a text file:
 
     (txt-make-file-from-blockchain "peercoin-blockchain.txt")
 
-To update a database using a running Peercoin daemon:
-
-    (rdbms-update-database-from-rpc)
-
 To create a database from scratch using a running Peercoin daemon:
 
     (rdbms-initialize-database)
     (rdbms-update-database-from-rpc)
+
+To update a database using a running Peercoin daemon:
+
+    (rdbms-update-database-from-rpc)
+
+To update a database using the blockchain:
+
+    (rdbms-update-database-from-blockchain)
 
 ## Donations
 

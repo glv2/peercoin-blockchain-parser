@@ -54,12 +54,13 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 (defun pretty-print-address (hash)
   "Make a string containing the base58 encoding of an address given its HASH."
-  (when hash
-    (let ((script (vector +peercoin-version-byte+)))
-      (setf script (concatenate 'vector script hash))
-      (setf script (coerce script '(vector (unsigned-byte 8))))
-      (setf script (concatenate 'vector script (subseq (sha256d script) 0 4)))
-      (base58-encode script))))
+  (if (and hash (> (length hash) 2))
+      (let ((script (vector +peercoin-version-byte+)))
+        (setf script (concatenate 'vector script hash))
+        (setf script (coerce script '(vector (unsigned-byte 8))))
+        (setf script (concatenate 'vector script (subseq (sha256d script) 0 4)))
+        (base58-encode script))
+      "NIL"))
 
 (defun hex-to-bin (hex)
   "Convert a hexadecimal string HEX to a octet vector."

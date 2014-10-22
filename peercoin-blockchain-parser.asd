@@ -24,10 +24,10 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
     :license "GPL-3"
     :depends-on (:cl-json :dbi :drakma :flexi-streams :ironclad :local-time)
     :components ((:file "config" :depends-on ("package"))
-                 (:file "file" :depends-on ("hash" "package" "types"))
+                 (:file "file" :depends-on ("config" "hash" "package" "types"))
                  (:file "hash" :depends-on ("package"))
                  (:file "package")
-                 (:file "rdbms" :depends-on ("config" "package" "rpc" "script" "types" "utils"))
+                 (:file "rdbms" :depends-on ("config" "file" "package" "rpc" "script" "types" "utils"))
                  (:file "rpc" :depends-on ("config" "hash" "package" "types"))
                  (:file "script" :depends-on ("hash" "package"))
                  (:file "sql" :depends-on ("file" "package" "script" "types" "utils"))

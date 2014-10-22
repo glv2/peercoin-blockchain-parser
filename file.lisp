@@ -161,7 +161,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
         (setf (hash blk) blk-hash)
         (return blk)))))
 
-(defun file-parse-blockchain (start-callback block-callback end-callback)
+(defun file-parse-blockchain (start-callback block-callback end-callback &optional backwards)
   "Call START-CALLBACK, parse the blockchain and pass every block to the BLOCK-CALLBACK function, and pass a list containing the hashes of the blocks to END-CALLBACK."
   (with-open-file (stream *file-blockchain*
                           :direction :input
@@ -169,9 +169,10 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
     (let (last-block block-hashes)
       (when start-callback
         (funcall start-callback))
-      (file-position stream (- (file-length stream) 4))
-      (do ((position (find-magic-id stream t)
-                     (find-magic-id stream t))
+      (when backwards
+        (file-position stream (- (file-length stream) 4)))
+      (do ((position (find-magic-id stream backwards)
+                     (find-magic-id stream backwards))
            blk
            blk-hash)
           ((null position))
@@ -189,8 +190,12 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
           (when block-callback
             (funcall block-callback blk))
           (setf last-block blk))
-        (when (minusp (- position 5))
-          (return))
-        (file-position stream (- position 5))) ; Before magic ID
+        (if backwards
+            (progn
+              (when (minusp (- position 5))
+                (return))
+              (file-position stream (- position 5))) ; Before magic ID
+            (when (> (+ (file-position stream) 84) (file-length stream))
+              (return))))
       (when end-callback
         (funcall end-callback block-hashes)))))

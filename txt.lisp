@@ -50,4 +50,4 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
               (incf block-id)
               (format txt "~%~%"))))
 
-      (file-parse-blockchain nil block-callback nil))))
+      (file-parse-blockchain nil block-callback nil t))))

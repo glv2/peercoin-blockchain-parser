@@ -19,6 +19,21 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 (in-package :peercoin-blockchain-parser)
 
 
+(defun rdbms-initialize-database ()
+  (dbi:with-connection (database *rdbms-driver*
+                                 :database-name *rdbms-database*
+                                 :username *rdbms-username*
+                                 :password *rdbms-password*)
+    (dbi:do-sql database "DROP TABLE IF EXISTS blocks")
+    (dbi:do-sql database "DROP TABLE IF EXISTS transactions")
+    (dbi:do-sql database "DROP TABLE IF EXISTS inputs")
+    (dbi:do-sql database "DROP TABLE IF EXISTS outputs")
+    (dbi:do-sql database "CREATE TABLE blocks (id BIGINT PRIMARY KEY, height BIGINT, hash CHAR(64), timestamp BIGINT, bits BIGINT, nonce BIGINT)")
+    (dbi:do-sql database "CREATE TABLE transactions (id BIGINT PRIMARY KEY, block_id BIGINT, hash CHAR(64), timestamp BIGINT)")
+    (dbi:do-sql database "CREATE TABLE inputs (id BIGINT PRIMARY KEY, transaction_id BIGINT, transaction_hash CHAR(64), transaction_index BIGINT)")
+    (dbi:do-sql database "CREATE TABLE outputs (id BIGINT PRIMARY KEY, transaction_id BIGINT, index BIGINT, value BIGINT, address CHAR(36))")
+    (dbi:do-sql database "CREATE INDEX addr_index ON outputs (address)")))
+
 (defun rdbms-get-block-count ()
   (dbi:with-connection (database *rdbms-driver*
                                  :database-name *rdbms-database*
@@ -45,35 +60,20 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
         (setf result -1))
       result)))
 
-(defun rdbms-initialize-database ()
-  (dbi:with-connection (database *rdbms-driver*
-                                 :database-name *rdbms-database*
-                                 :username *rdbms-username*
-                                 :password *rdbms-password*)
-    (dbi:do-sql database "DROP TABLE IF EXISTS blocks")
-    (dbi:do-sql database "DROP TABLE IF EXISTS transactions")
-    (dbi:do-sql database "DROP TABLE IF EXISTS inputs")
-    (dbi:do-sql database "DROP TABLE IF EXISTS outputs")
-    (dbi:do-sql database "CREATE TABLE blocks (id BIGINT PRIMARY KEY, height BIGINT, hash CHAR(64), timestamp BIGINT, bits BIGINT, nonce BIGINT)")
-    (dbi:do-sql database "CREATE TABLE transactions (id BIGINT PRIMARY KEY, block_id BIGINT, hash CHAR(64), timestamp BIGINT)")
-    (dbi:do-sql database "CREATE TABLE inputs (id BIGINT PRIMARY KEY, transaction_id BIGINT, transaction_hash CHAR(64), transaction_index BIGINT)")
-    (dbi:do-sql database "CREATE TABLE outputs (id BIGINT PRIMARY KEY, transaction_id BIGINT, index BIGINT, value BIGINT, address CHAR(36))")
-    (dbi:do-sql database "CREATE INDEX addr_index ON outputs (address)")))
-
 (defun rdbms-update-database-from-rpc ()
-  (dbi:with-connection (database *rdbms-driver*
-                                 :database-name *rdbms-database*
-                                 :username *rdbms-username*
-                                 :password *rdbms-password*)
-    (let ((max-block (rpc-get-block-count))
-          (n (rdbms-get-block-count))
-          (block-id (1+ (rdbms-get-max-id "blocks")))
-          (transaction-id (1+ (rdbms-get-max-id "transactions")))
-          (input-id (1+ (rdbms-get-max-id "inputs")))
-          (output-id (1+ (rdbms-get-max-id "outputs"))))
-      (when (= n -1)
-        (incf n)) ; The Peercoin daemon can't give all info on genesis block, so skip it
+  (let ((max-block (rpc-get-block-count))
+        (n (rdbms-get-block-count))
+        (block-id (1+ (rdbms-get-max-id "blocks")))
+        (transaction-id (1+ (rdbms-get-max-id "transactions")))
+        (input-id (1+ (rdbms-get-max-id "inputs")))
+        (output-id (1+ (rdbms-get-max-id "outputs"))))
+    (when (= n -1) ; Database empty
+      (incf n)) ; The Peercoin daemon can't give all info on genesis block, so skip it
 
+    (dbi:with-connection (database *rdbms-driver*
+                                   :database-name *rdbms-database*
+                                   :username *rdbms-username*
+                                   :password *rdbms-password*)
       (do (blk
            (query1 (dbi:prepare database "INSERT INTO blocks (id, height, hash, timestamp, bits, nonce) VALUES (?, ?, ?, ?, ?, ?)"))
            (query2 (dbi:prepare database "INSERT INTO transactions (id, block_id, hash, timestamp) VALUES (?, ?, ?, ?)"))
@@ -100,3 +100,56 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
             (incf transaction-id)))
         (incf block-id)))))
+
+(defun rdbms-update-database-from-blockchain ()
+  (let ((n (rdbms-get-block-count))
+        (block-id (1+ (rdbms-get-max-id "blocks")))
+        (transaction-id (1+ (rdbms-get-max-id "transactions")))
+        (input-id (1+ (rdbms-get-max-id "inputs")))
+        (output-id (1+ (rdbms-get-max-id "outputs")))
+        last-hash)
+    (dbi:with-connection (database *rdbms-driver*
+                                   :database-name *rdbms-database*
+                                   :username *rdbms-username*
+                                   :password *rdbms-password*)
+      (unless (minusp n) ; Unless database empty
+        (let* ((query (dbi:prepare database "SELECT hash FROM blocks WHERE height=?"))
+               (result (dbi:execute query n)))
+          (setf last-hash (getf (dbi:fetch result) :|hash|))))
+
+      (let* ((query1 (dbi:prepare database "INSERT INTO blocks (id, hash, timestamp, bits, nonce) VALUES (?, ?, ?, ?, ?)"))
+             (query2 (dbi:prepare database "INSERT INTO transactions (id, block_id, hash, timestamp) VALUES (?, ?, ?, ?)"))
+             (query3 (dbi:prepare database "INSERT INTO inputs (id, transaction_id, transaction_hash, transaction_index) VALUES (?, ?, ?, ?)"))
+             (query4 (dbi:prepare database "INSERT INTO outputs (id, transaction_id, index, value, address) VALUES (?, ?, ?, ?, ?)"))
+             (query5 (dbi:prepare database "UPDATE blocks SET height=? WHERE hash=?"))
+
+             (block-callback (lambda (blk)
+                               (when (equal (pretty-print-hash (hash blk)) last-hash)
+                                 (return-from rdbms-update-database-from-blockchain))
+
+                               (dbi:execute query1 block-id (pretty-print-hash (hash blk)) (timestamp blk) (bits blk) (nonce blk))
+
+                               (dotimes (i (transaction-count blk))
+                                 (let ((transaction (aref (transactions blk) i)))
+                                   (dbi:execute query2 transaction-id block-id (pretty-print-hash (hash transaction)) (timestamp transaction))
+
+                                   (dotimes (j (input-count transaction))
+                                     (let ((input (aref (inputs transaction) j)))
+                                       (dbi:execute query3 input-id transaction-id (pretty-print-hash (transaction-hash input)) (transaction-index input))
+                                       (incf input-id)))
+
+                                   (dotimes (j (output-count transaction))
+                                     (let ((output (aref (outputs transaction) j)))
+                                       (dbi:execute query4 output-id transaction-id (index output) (value output) (pretty-print-address (get-output-address (script output))))
+                                       (incf output-id)))
+
+                                   (incf transaction-id)))
+                               (incf block-id)))
+
+             (end-callback (lambda (block-hashes)
+                             (let ((block-height (1+ n)))
+                               (dolist (hash block-hashes)
+                                 (dbi:execute query5 block-height (pretty-print-hash hash))
+                                 (incf block-height))))))
+
+        (file-parse-blockchain nil block-callback end-callback t)))))

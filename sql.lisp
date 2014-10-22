@@ -77,4 +77,4 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
             (lambda (block-hashes)
               (sql-update-block-heights sql block-hashes))))
 
-      (file-parse-blockchain start-callback block-callback end-callback))))
+      (file-parse-blockchain start-callback block-callback end-callback t))))
