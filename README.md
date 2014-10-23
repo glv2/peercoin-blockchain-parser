@@ -65,6 +65,10 @@ To get the balance of an address:
 
     (rdbms-get-balance "PWFNV1Cvq7nQBRyRueuYzwmDNXUGpgNkBC")
 
+To get the transaction history of an address:
+
+    (rdbms-get-history "PWFNV1Cvq7nQBRyRueuYzwmDNXUGpgNkBC")
+
 To get the list of the 20 richest addresses:
 
     (rdbms-get-rich-addresses 20)

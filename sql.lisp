@@ -29,7 +29,12 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
   (format sql "CREATE TABLE transactions (id BIGINT PRIMARY KEY, block_id BIGINT, hash CHAR(64), timestamp BIGINT);~%")
   (format sql "CREATE TABLE inputs (id BIGINT PRIMARY KEY, transaction_id BIGINT, transaction_hash CHAR(64), transaction_index BIGINT);~%")
   (format sql "CREATE TABLE outputs (id BIGINT PRIMARY KEY, transaction_id BIGINT, index BIGINT, value BIGINT, address CHAR(36));~%~%")
-  (format sql "CREATE INDEX addr_index ON outputs (address);~%~%~%"))
+  (format sql "CREATE INDEX blocks_hash_idx ON blocks (hash);~%")
+  (format sql "CREATE INDEX transactions_hash_idx ON transactions (hash);~%")
+  (format sql "CREATE INDEX inputs_txid_idx ON inputs (transaction_id);~%")
+  (format sql "CREATE INDEX inputs_txhash_idx ON inputs (transaction_hash);~%")
+  (format sql "CREATE INDEX outputs_txid_idx ON outputs (transaction_id);~%")
+  (format sql "CREATE INDEX outputs_addr_index ON outputs (address);~%~%~%"))
 
 (defun sql-update-block-heights (sql block-hashes)
   "Update block numbers."

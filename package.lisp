@@ -22,6 +22,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
            rdbms-get-block-count
            rdbms-get-balance
            rdbms-get-rich-addresses
+           rdbms-get-history
            rdbms-initialize-database
            rdbms-update-database-from-blockchain
            rdbms-update-database-from-rpc

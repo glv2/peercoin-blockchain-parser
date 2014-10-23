@@ -33,7 +33,12 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
     (dbi:do-sql database "CREATE TABLE transactions (id BIGINT PRIMARY KEY, block_id BIGINT, hash CHAR(64), timestamp BIGINT)")
     (dbi:do-sql database "CREATE TABLE inputs (id BIGINT PRIMARY KEY, transaction_id BIGINT, transaction_hash CHAR(64), transaction_index BIGINT)")
     (dbi:do-sql database "CREATE TABLE outputs (id BIGINT PRIMARY KEY, transaction_id BIGINT, index BIGINT, value BIGINT, address CHAR(36))")
-    (dbi:do-sql database "CREATE INDEX addr_index ON outputs (address)")))
+    (dbi:do-sql database "CREATE INDEX blocks_hash_idx ON blocks (hash)")
+    (dbi:do-sql database "CREATE INDEX transactions_hash_idx ON transactions (hash)")
+    (dbi:do-sql database "CREATE INDEX inputs_txid_idx ON inputs (transaction_id)")
+    (dbi:do-sql database "CREATE INDEX inputs_txhash_idx ON inputs (transaction_hash)")
+    (dbi:do-sql database "CREATE INDEX outputs_txid_idx ON outputs (transaction_id)")
+    (dbi:do-sql database "CREATE INDEX outputs_addr_idx ON outputs (address)")))
 
 (defun rdbms-get-block-count ()
   "Get the highest block number in the database."
@@ -165,33 +170,24 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
                                  :database-name *rdbms-database*
                                  :username *rdbms-username*
                                  :password *rdbms-password*)
-    (let ((query1 (dbi:prepare database "SELECT * FROM outputs WHERE address = ?"))
-          (query2 (dbi:prepare database "SELECT o.* FROM inputs i, outputs o, transactions t WHERE t.id = ? AND o.transaction_id = ? AND i.transaction_index = ?  AND i.transaction_index = o.index AND i.transaction_hash = t.hash"))
+    (let ((query1 (dbi:prepare database "SELECT sum(value) FROM outputs WHERE address = ?"))
+          (query2 (dbi:prepare database "SELECT sum(o.value) FROM inputs i, outputs o, transactions t WHERE o.address = ? AND i.transaction_hash = t.hash AND o.transaction_id = t.id AND i.transaction_index = o.index"))
           (balance 0)
           result
-          value
-          outputs)
+          value)
       ;; Get the outputs
       (setf result (dbi:execute query1 address))
-      (loop
-         for row = (dbi:fetch result)
-         while row
-         do (progn
-              (push (cons (getf row :|transaction_id|) (getf row :|index|)) outputs)
-              (setf value (getf row :|value|))
-              (when value
-                (incf balance value))))
+      (setf value (getf (dbi:fetch result) :|sum|))
+      (when (integerp value)
+        (incf balance value))
 
-      ;; Get the spent outputs
-      (dolist (output outputs)
-        (when (and (car output) (cdr output))
-          (setf result (dbi:execute query2 (car output) (car output) (cdr output)))
-          (setf value (getf (dbi:fetch result) :|value|))
-          (when value
-            (decf balance value))))
+      ;; Get the inputs (spent outputs)
+      (setf result (dbi:execute query2 address))
+      (setf value (getf (dbi:fetch result) :|sum|))
+      (when (integerp value)
+        (decf balance value))
 
-      (setf balance (/ balance 1000000.0d0))
-      balance)))
+      (/ balance 1000000.0d0))))
 
 (defun rdbms-get-rich-addresses (&optional (n 10))
   "Get the list of the N richest addresses."
@@ -206,10 +202,56 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
       (setf addresses (loop
                          for row = (dbi:fetch result)
                          while row
-                         collect (getf row :|address|)))
+                         collect (remove #\Space (getf row :|address|))))
 
       (dolist (address addresses)
-        (push (cons address (rdbms-get-balance address)) balances))
-      (setf balances (sort balances #'(lambda (x y) (> (cdr x) (cdr y)))))
+        (unless (equal address "NIL")
+          (push (cons address (rdbms-get-balance address)) balances)))
 
+      (setf balances (sort balances #'(lambda (x y) (> (cdr x) (cdr y)))))
       (subseq balances 0 (min n (length balances))))))
+
+(defun rdbms-get-history (address)
+  "Get the transaction history of an ADDRESS."
+  (dbi:with-connection (database *rdbms-driver*
+                                 :database-name *rdbms-database*
+                                 :username *rdbms-username*
+                                 :password *rdbms-password*)
+    (let ((query1 (dbi:prepare database "SELECT t.timestamp, t.hash, sum(value) FROM outputs o, transactions t WHERE o.address=? AND o.transaction_id=t.id GROUP BY t.timestamp, t.hash ORDER BY t.timestamp"))
+          (query2 (dbi:prepare database "SELECT t2.timestamp, t2.hash, sum(o.value) FROM inputs i, outputs o, transactions t1, transactions t2 WHERE o.address=? and i.transaction_hash=t1.hash AND o.transaction_id=t1.id AND i.transaction_index=o.index AND i.transaction_id=t2.id GROUP BY t2.hash, t2.timestamp ORDER BY t2.timestamp;"))
+          result
+          transactions)
+      ;; Get the outputs
+      (setf result (dbi:execute query1 address))
+      (loop
+         for row = (dbi:fetch result)
+         while row
+         do (push (list (getf row :|timestamp|) (getf row :|hash|) (getf row :|sum|)) transactions))
+
+      ;; Get the inputs (spent outputs)
+      (setf result (dbi:execute query2 address))
+      (loop
+         for row = (dbi:fetch result)
+         while row
+         do (push (list (getf row :|timestamp|) (getf row :|hash|) (- (getf row :|sum|))) transactions))
+
+      ;; Merge the input and output of minting transactions in one transaction
+      (setf transactions (sort transactions #'(lambda (x y) (string> (second x) (second y)))))
+      (let (last-tx txs)
+        (dolist (tx transactions)
+          (if (null last-tx)
+              (setf last-tx tx)
+              (if (and (= (first last-tx) (first tx))
+                       (equal (second last-tx) (second tx)))
+                  (progn
+                    (push (list (first tx) (second tx) (+ (third last-tx) (third tx))) txs)
+                    (setf last-tx nil))
+                  (progn
+                    (push last-tx txs)
+                    (setf last-tx tx)))))
+        (when last-tx
+          (push last-tx txs))
+        (setf transactions txs))
+
+      (setf transactions (sort transactions #'(lambda (x y) (< (first x) (first y)))))
+      (mapcar #'(lambda (x) (list (epoch-to-utc (first x)) (second x) (/ (third x) 1000000.0d0))) transactions))))
