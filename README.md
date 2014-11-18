@@ -73,6 +73,10 @@ To get the list of the 20 richest addresses:
 
     (rdbms-get-rich-addresses 20)
 
+To get the list of the unspent transactions of an address:
+
+    (rdbms-get-unspent-transactions "PWFNV1Cvq7nQBRyRueuYzwmDNXUGpgNkBC")
+
 ## Donations
 
 If you find this program useful and want to make a donation, you can send coins to the following Peercoin address: **PWFNV1Cvq7nQBRyRueuYzwmDNXUGpgNkBC**.
