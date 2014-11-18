@@ -19,12 +19,13 @@ If not, see <http://www.gnu.org/licenses/>.
 
 (defpackage peercoin-blockchain-parser
   (:use cl)
-  (:export txt-make-file-from-blockchain
+  (:export rdbms-get-balance
            rdbms-get-block-count
-           rdbms-get-balance
-           rdbms-get-rich-addresses
            rdbms-get-history
+           rdbms-get-rich-addresses
+           rdbms-get-unspent-transactions
            rdbms-initialize-database
            rdbms-update-database-from-blockchain
            rdbms-update-database-from-rpc
-           sql-make-script-from-blockchain))
+           sql-make-script-from-blockchain
+           txt-make-file-from-blockchain))

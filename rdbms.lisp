@@ -218,8 +218,8 @@ If not, see <http://www.gnu.org/licenses/>.
                                  :database-name *rdbms-database*
                                  :username *rdbms-username*
                                  :password *rdbms-password*)
-    (let ((query1 (dbi:prepare database "SELECT t.timestamp, t.hash, sum(value) FROM outputs o, transactions t WHERE o.address=? AND o.transaction_id=t.id GROUP BY t.timestamp, t.hash ORDER BY t.timestamp"))
-          (query2 (dbi:prepare database "SELECT t2.timestamp, t2.hash, sum(o.value) FROM inputs i, outputs o, transactions t1, transactions t2 WHERE o.address=? and i.transaction_hash=t1.hash AND o.transaction_id=t1.id AND i.transaction_index=o.index AND i.transaction_id=t2.id GROUP BY t2.hash, t2.timestamp ORDER BY t2.timestamp;"))
+    (let ((query1 (dbi:prepare database "SELECT t.timestamp, t.hash, sum(value) FROM outputs o, transactions t WHERE o.address = ? AND o.transaction_id = t.id GROUP BY t.timestamp, t.hash ORDER BY t.timestamp"))
+          (query2 (dbi:prepare database "SELECT t2.timestamp, t2.hash, sum(o.value) FROM inputs i, outputs o, transactions t1, transactions t2 WHERE o.address = ? and i.transaction_hash = t1.hash AND o.transaction_id = t1.id AND i.transaction_index = o.index AND i.transaction_id = t2.id GROUP BY t2.hash, t2.timestamp ORDER BY t2.timestamp;"))
           result
           transactions)
       ;; Get the outputs
@@ -256,3 +256,22 @@ If not, see <http://www.gnu.org/licenses/>.
 
       (setf transactions (sort transactions #'(lambda (x y) (< (first x) (first y)))))
       (mapcar #'(lambda (x) (list (epoch-to-utc (first x)) (second x) (/ (third x) 1000000.0d0))) transactions))))
+
+(defun rdbms-get-unspent-transactions (address)
+  "Get the list of unspent transactions of an ADDRESS."
+  (dbi:with-connection (database *rdbms-driver*
+                                 :database-name *rdbms-database*
+                                 :username *rdbms-username*
+                                 :password *rdbms-password*)
+    (let ((query (dbi:prepare database "SELECT t.timestamp, t.hash, o.index, o.value FROM transactions t, outputs o WHERE o.address = ? AND o.transaction_id = t.id EXCEPT SELECT t.timestamp, t.hash, o.index, o.value FROM transactions t, inputs i, outputs o WHERE o.address = ? AND o.transaction_id = t.id AND i.transaction_hash = t.hash AND i.transaction_index = o.index"))
+          result
+          transactions)
+      ;; Get the unspent outputs
+      (setf result (dbi:execute query address address))
+      (loop
+         for row = (dbi:fetch result)
+         while row
+         do (push (list (getf row :|timestamp|) (getf row :|hash|) (getf row :|index|) (getf row :|value|)) transactions))
+
+      (setf transactions (sort transactions #'(lambda (x y) (< (first x) (first y)))))
+      (mapcar #'(lambda (x) (list (epoch-to-utc (first x)) (second x) (third x) (/ (fourth x) 1000000.0d0))) transactions))))
