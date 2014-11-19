@@ -196,20 +196,14 @@ If not, see <http://www.gnu.org/licenses/>.
                                  :database-name *rdbms-database*
                                  :username *rdbms-username*
                                  :password *rdbms-password*)
-    (let* ((query (dbi:prepare database "SELECT DISTINCT address FROM outputs"))
+    (let* ((query (dbi:prepare database "SELECT result.address, sum(result.value) FROM (SELECT o.address, t.hash, o.index, o.value FROM transactions t, outputs o WHERE o.address <> 'NIL' AND o.transaction_id = t.id EXCEPT SELECT o.address, t.hash, o.index, o.value FROM transactions t, inputs i, outputs o WHERE o.address <> 'NIL' AND o.transaction_id = t.id AND i.transaction_hash = t.hash AND i.transaction_index = o.index) AS result GROUP BY result.address ORDER BY sum(result.value)"))
            (result (dbi:execute query))
-           addresses
            balances)
-      (setf addresses (loop
-                         for row = (dbi:fetch result)
-                         while row
-                         collect (remove #\Space (getf row :|address|))))
+      (loop
+         for row = (dbi:fetch result)
+         while row
+         do (push (list (remove #\Space (getf row :|address|)) (/ (getf row :|sum|) 1000000.0d0)) balances))
 
-      (dolist (address addresses)
-        (unless (equal address "NIL")
-          (push (cons address (rdbms-get-balance address)) balances)))
-
-      (setf balances (sort balances #'(lambda (x y) (> (cdr x) (cdr y)))))
       (subseq balances 0 (min n (length balances))))))
 
 (defun rdbms-get-history (address)
