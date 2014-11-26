@@ -33,8 +33,8 @@ If not, see <http://www.gnu.org/licenses/>.
     (setf answer (flexi-streams:octets-to-string answer))
     (setf answer (cl-json:decode-json-from-string answer))
     (if (cdr (assoc :error answer))
-        (cdr (assoc :error answer))
-        (cdr (assoc :result answer)))))
+        (values (cdr (assoc :error answer)) nil)
+        (values (cdr (assoc :result answer)) t))))
 
 (defun rpc-get-transaction (h)
   "Get a transaction using RPC given its hash."
