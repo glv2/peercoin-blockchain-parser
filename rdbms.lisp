@@ -32,8 +32,8 @@ If not, see <http://www.gnu.org/licenses/>.
     (dbi:do-sql database "DROP TABLE IF EXISTS outputs")
     (dbi:do-sql database "CREATE TABLE blocks (id BIGINT PRIMARY KEY, height BIGINT, hash CHAR(64), timestamp BIGINT, bits BIGINT, nonce BIGINT)")
     (dbi:do-sql database "CREATE TABLE transactions (id BIGINT PRIMARY KEY, block_id BIGINT, hash CHAR(64), timestamp BIGINT)")
-    (dbi:do-sql database "CREATE TABLE inputs (id BIGINT PRIMARY KEY, transaction_id BIGINT, transaction_hash CHAR(64), transaction_index BIGINT)")
-    (dbi:do-sql database "CREATE TABLE outputs (id BIGINT PRIMARY KEY, transaction_id BIGINT, index BIGINT, value BIGINT, address CHAR(36))")
+    (dbi:do-sql database "CREATE TABLE inputs (id BIGINT PRIMARY KEY, transaction_id BIGINT, transaction_hash CHAR(64), transaction_index BIGINT, script VARCHAR(1024))")
+    (dbi:do-sql database "CREATE TABLE outputs (id BIGINT PRIMARY KEY, transaction_id BIGINT, index BIGINT, value BIGINT, address VARCHAR(36), script VARCHAR(1024))")
     (dbi:do-sql database "CREATE INDEX blocks_hash_idx ON blocks (hash)")
     (dbi:do-sql database "CREATE INDEX transactions_hash_idx ON transactions (hash)")
     (dbi:do-sql database "CREATE INDEX inputs_txid_idx ON inputs (transaction_id)")
@@ -87,8 +87,8 @@ If not, see <http://www.gnu.org/licenses/>.
       (do (blk
            (query1 (dbi:prepare database "INSERT INTO blocks (id, height, hash, timestamp, bits, nonce) VALUES (?, ?, ?, ?, ?, ?)"))
            (query2 (dbi:prepare database "INSERT INTO transactions (id, block_id, hash, timestamp) VALUES (?, ?, ?, ?)"))
-           (query3 (dbi:prepare database "INSERT INTO inputs (id, transaction_id, transaction_hash, transaction_index) VALUES (?, ?, ?, ?)"))
-           (query4 (dbi:prepare database "INSERT INTO outputs (id, transaction_id, index, value, address) VALUES (?, ?, ?, ?, ?)")))
+           (query3 (dbi:prepare database "INSERT INTO inputs (id, transaction_id, transaction_hash, transaction_index, script) VALUES (?, ?, ?, ?, ?)"))
+           (query4 (dbi:prepare database "INSERT INTO outputs (id, transaction_id, index, value, address, script) VALUES (?, ?, ?, ?, ?, ?)")))
           ((>= n max-block) n)
         (incf n)
         (setf blk (rpc-get-block-by-number n))
@@ -100,12 +100,12 @@ If not, see <http://www.gnu.org/licenses/>.
 
             (dotimes (j (input-count transaction))
               (let ((input (aref (inputs transaction) j)))
-                (dbi:execute query3 input-id transaction-id (pretty-print-hash (transaction-hash input)) (transaction-index input))
+                (dbi:execute query3 input-id transaction-id (pretty-print-hash (transaction-hash input)) (transaction-index input) (bin-to-hex (script input)))
                 (incf input-id)))
 
             (dotimes (j (output-count transaction))
               (let ((output (aref (outputs transaction) j)))
-                (dbi:execute query4 output-id transaction-id (index output) (value output) (pretty-print-address (get-output-address (script output))))
+                (dbi:execute query4 output-id transaction-id (index output) (value output) (pretty-print-address (get-output-address (script output))) (bin-to-hex (script output)))
                 (incf output-id)))
 
             (incf transaction-id)))
@@ -130,8 +130,8 @@ If not, see <http://www.gnu.org/licenses/>.
 
       (let* ((query1 (dbi:prepare database "INSERT INTO blocks (id, hash, timestamp, bits, nonce) VALUES (?, ?, ?, ?, ?)"))
              (query2 (dbi:prepare database "INSERT INTO transactions (id, block_id, hash, timestamp) VALUES (?, ?, ?, ?)"))
-             (query3 (dbi:prepare database "INSERT INTO inputs (id, transaction_id, transaction_hash, transaction_index) VALUES (?, ?, ?, ?)"))
-             (query4 (dbi:prepare database "INSERT INTO outputs (id, transaction_id, index, value, address) VALUES (?, ?, ?, ?, ?)"))
+             (query3 (dbi:prepare database "INSERT INTO inputs (id, transaction_id, transaction_hash, transaction_index, script) VALUES (?, ?, ?, ?, ?)"))
+             (query4 (dbi:prepare database "INSERT INTO outputs (id, transaction_id, index, value, address, script) VALUES (?, ?, ?, ?, ?, ?)"))
              (query5 (dbi:prepare database "UPDATE blocks SET height=? WHERE hash=?"))
 
              (block-callback (lambda (blk)
@@ -146,12 +146,12 @@ If not, see <http://www.gnu.org/licenses/>.
 
                                    (dotimes (j (input-count transaction))
                                      (let ((input (aref (inputs transaction) j)))
-                                       (dbi:execute query3 input-id transaction-id (pretty-print-hash (transaction-hash input)) (transaction-index input))
+                                       (dbi:execute query3 input-id transaction-id (pretty-print-hash (transaction-hash input)) (transaction-index input) (bin-to-hex (script input)))
                                        (incf input-id)))
 
                                    (dotimes (j (output-count transaction))
                                      (let ((output (aref (outputs transaction) j)))
-                                       (dbi:execute query4 output-id transaction-id (index output) (value output) (pretty-print-address (get-output-address (script output))))
+                                       (dbi:execute query4 output-id transaction-id (index output) (value output) (pretty-print-address (get-output-address (script output))) (bin-to-hex (script output)))
                                        (incf output-id)))
 
                                    (incf transaction-id)))
@@ -202,7 +202,7 @@ If not, see <http://www.gnu.org/licenses/>.
       (loop
          for row = (dbi:fetch result)
          while row
-         do (push (list (remove #\Space (getf row :|address|)) (/ (getf row :|sum|) 1000000.0d0)) balances))
+         do (push (list (getf row :|address|) (/ (getf row :|sum|) 1000000.0d0)) balances))
 
       (subseq balances 0 (min n (length balances))))))
 

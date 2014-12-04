@@ -39,12 +39,12 @@ If not, see <http://www.gnu.org/licenses/>.
 
                   (dotimes (j (input-count transaction))
                     (let ((input (aref (inputs transaction) j)))
-                      (format txt "    input~%      transaction: ~a~%      index: ~d~%" (pretty-print-hash (transaction-hash input)) (transaction-index input))
+                      (format txt "    input~%      transaction: ~a~%      index: ~d~%      script: ~a~%" (pretty-print-hash (transaction-hash input)) (transaction-index input) (bin-to-hex (script input)))
                       (incf input-id)))
 
                   (dotimes (j (output-count transaction))
                     (let ((output (aref (outputs transaction) j)))
-                      (format txt "    output~%      index: ~d~%      value: ~d~%      address: ~a~%" (index output) (value output) (pretty-print-address (get-output-address (script output))))
+                      (format txt "    output~%      index: ~d~%      value: ~d~%      script: ~a~%      address: ~a~%" (index output) (value output) (bin-to-hex (script output)) (pretty-print-address (get-output-address (script output))))
                       (incf output-id)))
 
                   (incf transaction-id)))

@@ -63,8 +63,16 @@ If not, see <http://www.gnu.org/licenses/>.
         (base58-encode script))
       "NIL"))
 
+(defun bin-to-hex (bin)
+  "Convert an octet vector BIN to a hexadecimal string."
+  (let* ((hex (map 'vector #'(lambda (x) (string-downcase (format nil "~2,'0x" x))) bin))
+         (len (length hex)))
+    (cond ((= len 1) (coerce hex 'string))
+          ((> len 1) (reduce #'(lambda (x y) (concatenate 'string x y)) hex))
+          (t ""))))
+
 (defun hex-to-bin (hex)
-  "Convert a hexadecimal string HEX to a octet vector."
+  "Convert a hexadecimal string HEX to an octet vector."
   (let* ((len (/ (length hex) 2))
          (bin (make-array len :element-type '(unsigned-byte 8))))
     (dotimes (i len bin)

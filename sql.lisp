@@ -28,8 +28,8 @@ If not, see <http://www.gnu.org/licenses/>.
   (format sql "DROP TABLE IF EXISTS outputs;~%~%")
   (format sql "CREATE TABLE blocks (id BIGINT PRIMARY KEY, height BIGINT, hash CHAR(64), timestamp BIGINT, bits BIGINT, nonce BIGINT);~%")
   (format sql "CREATE TABLE transactions (id BIGINT PRIMARY KEY, block_id BIGINT, hash CHAR(64), timestamp BIGINT);~%")
-  (format sql "CREATE TABLE inputs (id BIGINT PRIMARY KEY, transaction_id BIGINT, transaction_hash CHAR(64), transaction_index BIGINT);~%")
-  (format sql "CREATE TABLE outputs (id BIGINT PRIMARY KEY, transaction_id BIGINT, index BIGINT, value BIGINT, address CHAR(36));~%~%")
+  (format sql "CREATE TABLE inputs (id BIGINT PRIMARY KEY, transaction_id BIGINT, transaction_hash CHAR(64), transaction_index BIGINT, script VARCHAR(1024));~%")
+  (format sql "CREATE TABLE outputs (id BIGINT PRIMARY KEY, transaction_id BIGINT, index BIGINT, value BIGINT, address VARCHAR(36), script VARCHAR(1024));~%~%")
   (format sql "CREATE INDEX blocks_hash_idx ON blocks (hash);~%")
   (format sql "CREATE INDEX transactions_hash_idx ON transactions (hash);~%")
   (format sql "CREATE INDEX inputs_txid_idx ON inputs (transaction_id);~%")
@@ -67,12 +67,12 @@ If not, see <http://www.gnu.org/licenses/>.
 
                   (dotimes (j (input-count transaction))
                     (let ((input (aref (inputs transaction) j)))
-                      (format sql "INSERT INTO inputs (id, transaction_id, transaction_hash, transaction_index) VALUES (~d, ~d, '~a', ~d);~%" input-id transaction-id (pretty-print-hash (transaction-hash input)) (transaction-index input))
+                      (format sql "INSERT INTO inputs (id, transaction_id, transaction_hash, transaction_index, script) VALUES (~d, ~d, '~a', ~d, '~a');~%" input-id transaction-id (pretty-print-hash (transaction-hash input)) (transaction-index input) (bin-to-hex (script input)))
                       (incf input-id)))
 
                   (dotimes (j (output-count transaction))
                     (let ((output (aref (outputs transaction) j)))
-                      (format sql "INSERT INTO outputs (id, transaction_id, index, value, address) VALUES (~d, ~d, ~d, ~d, '~a');~%" output-id transaction-id (index output) (value output) (pretty-print-address (get-output-address (script output))))
+                      (format sql "INSERT INTO outputs (id, transaction_id, index, value, address, script) VALUES (~d, ~d, ~d, ~d, '~a', '~a');~%" output-id transaction-id (index output) (value output) (pretty-print-address (get-output-address (script output))) (bin-to-hex (script output)))
                       (incf output-id)))
 
                   (incf transaction-id)))
