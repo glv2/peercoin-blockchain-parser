@@ -31,3 +31,6 @@ If not, see <http://www.gnu.org/licenses/>.
 (make-class transaction (hash version timestamp input-count inputs output-count outputs lock-time))
 
 (make-class blk (hash header-length version previous-hash merkle-root timestamp bits nonce transaction-count transactions))
+
+
+(setf *read-default-float-format* 'double-float)
