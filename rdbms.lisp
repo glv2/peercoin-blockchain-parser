@@ -1,5 +1,5 @@
 #|
-Copyright 2014 Guillaume LE VAILLANT
+Copyright 2014-2015 Guillaume LE VAILLANT
 
 This library is free software; you can redistribute it and/or
 modify it under the terms of the GNU Lesser General Public
@@ -269,3 +269,19 @@ If not, see <http://www.gnu.org/licenses/>.
 
       (setf transactions (sort transactions #'(lambda (x y) (< (first x) (first y)))))
       (mapcar #'(lambda (x) (list (epoch-to-utc (first x)) (second x) (third x) (/ (fourth x) 1000000.0d0))) transactions))))
+
+(defun rdbms-get-balances-at-block (n)
+  "Get the list of the addresses with a positive balance at block N."
+  (dbi:with-connection (database *rdbms-driver*
+                                 :database-name *rdbms-database*
+                                 :username *rdbms-username*
+                                 :password *rdbms-password*)
+    (let* ((query (dbi:prepare database "SELECT result.address, sum(result.value) FROM (SELECT o.address, t.hash, o.index, o.value FROM transactions t, outputs o, blocks b WHERE o.address <> 'NIL' AND o.transaction_id = t.id AND t.block_id = b.id AND b.height <= ? EXCEPT SELECT o.address, t.hash, o.index, o.value FROM transactions t, inputs i, outputs o, blocks b, transactions ti WHERE o.address <> 'NIL' AND o.transaction_id = t.id AND i.transaction_id = ti.id AND ti.block_id = b.id AND b.height <= ? AND i.transaction_hash = t.hash AND i.transaction_index = o.index) AS result GROUP BY result.address ORDER BY result.address DESC"))
+           (result (dbi:execute query n n))
+           balances)
+      (loop
+         for row = (dbi:fetch result)
+         while row
+         do (when (plusp (getf row :|sum|))
+              (push (list (getf row :|address|) (/ (getf row :|sum|) 1000000.0d0)) balances))
+         finally (return balances)))))

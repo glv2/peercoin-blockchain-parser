@@ -1,5 +1,5 @@
 #|
-Copyright 2014 Guillaume LE VAILLANT
+Copyright 2014-2015 Guillaume LE VAILLANT
 
 This library is free software; you can redistribute it and/or
 modify it under the terms of the GNU Lesser General Public
@@ -100,7 +100,7 @@ If not, see <http://www.gnu.org/licenses/>.
     (setf lock-time (file-read-unsigned-integer stream 4))))
 
 (defmethod file-read-object ((object blk) stream)
-  (with-slots (header-length version previous-hash merkle-root timestamp bits nonce transaction-count transactions)
+  (with-slots (header-length version previous-hash merkle-root timestamp bits nonce transaction-count transactions signature-length signature)
       object
     (setf header-length (file-read-unsigned-integer stream 4)
           version (file-read-unsigned-integer stream 4)
@@ -122,7 +122,10 @@ If not, see <http://www.gnu.org/licenses/>.
         (file-position stream start-position)
         (setf transaction-hash (file-compute-data-hash stream 0 (- end-position start-position)))
         (setf (hash (aref transactions i)) transaction-hash)
-        (file-position stream end-position)))))
+        (file-position stream end-position)))
+
+    (setf signature-length (file-read-variable-length-unsigned-integer stream)
+          signature (file-read-bytes stream signature-length))))
 
 
 ;;; Parser

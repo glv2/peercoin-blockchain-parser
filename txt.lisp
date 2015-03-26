@@ -1,5 +1,5 @@
 #|
-Copyright 2014 Guillaume LE VAILLANT
+Copyright 2014-2015 Guillaume LE VAILLANT
 
 This library is free software; you can redistribute it and/or
 modify it under the terms of the GNU Lesser General Public
@@ -23,32 +23,23 @@ If not, see <http://www.gnu.org/licenses/>.
 (defun txt-make-file-from-blockchain (txt-file)
   "Export the data from the blockchain to a TXT-FILE."
   (with-open-file (txt txt-file :direction :output :if-exists :supersede)
-    (let* ((block-id 0)
-           (transaction-id 0)
-           (input-id 0)
-           (output-id 0)
+    (let ((block-callback
+           (lambda (blk)
+             "Print block, transaction, inputs and outputs."
+             (format txt "block: ~a~%  previous block: ~a~%  timestamp: ~d~%  bits: ~d~%  nonce: ~d~%  transactions: ~d~%" (pretty-print-hash (hash blk)) (pretty-print-hash (previous-hash blk)) (timestamp blk) (bits blk) (nonce blk) (transaction-count blk))
 
-           (block-callback
-            (lambda (blk)
-              "Print block, transaction, inputs and outputs."
-              (format txt "block: ~a~%  previous block: ~a~%  timestamp: ~d~%  bits: ~d~%  nonce: ~d~%  transactions: ~d~%" (pretty-print-hash (hash blk)) (pretty-print-hash (previous-hash blk)) (timestamp blk) (bits blk) (nonce blk) (transaction-count blk))
+             (dotimes (i (transaction-count blk))
+               (let ((transaction (aref (transactions blk) i)))
+                 (format txt "  transaction: ~a~%    timestamp: ~d~%    inputs: ~d~%    outputs: ~d~%" (pretty-print-hash (hash transaction)) (timestamp transaction) (input-count transaction) (output-count transaction))
 
-              (dotimes (i (transaction-count blk))
-                (let ((transaction (aref (transactions blk) i)))
-                  (format txt "  transaction: ~a~%    timestamp: ~d~%    inputs: ~d~%    outputs: ~d~%" (pretty-print-hash (hash transaction)) (timestamp transaction) (input-count transaction) (output-count transaction))
+                 (dotimes (j (input-count transaction))
+                   (let ((input (aref (inputs transaction) j)))
+                     (format txt "    input~%      transaction: ~a~%      index: ~d~%      script: ~a~%" (pretty-print-hash (transaction-hash input)) (transaction-index input) (bin-to-hex (script input)))))
 
-                  (dotimes (j (input-count transaction))
-                    (let ((input (aref (inputs transaction) j)))
-                      (format txt "    input~%      transaction: ~a~%      index: ~d~%      script: ~a~%" (pretty-print-hash (transaction-hash input)) (transaction-index input) (bin-to-hex (script input)))
-                      (incf input-id)))
+                 (dotimes (j (output-count transaction))
+                   (let ((output (aref (outputs transaction) j)))
+                     (format txt "    output~%      index: ~d~%      value: ~d~%      script: ~a~%      address: ~a~%" (index output) (value output) (bin-to-hex (script output)) (pretty-print-address (get-output-address (script output))))))))
 
-                  (dotimes (j (output-count transaction))
-                    (let ((output (aref (outputs transaction) j)))
-                      (format txt "    output~%      index: ~d~%      value: ~d~%      script: ~a~%      address: ~a~%" (index output) (value output) (bin-to-hex (script output)) (pretty-print-address (get-output-address (script output))))
-                      (incf output-id)))
-
-                  (incf transaction-id)))
-              (incf block-id)
-              (format txt "~%~%"))))
+             (format txt "  signature: ~a~%~%~%" (bin-to-hex (signature blk))))))
 
       (file-parse-blockchain nil block-callback nil t))))

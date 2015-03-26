@@ -1,5 +1,5 @@
 #|
-Copyright 2014 Guillaume LE VAILLANT
+Copyright 2014-2015 Guillaume LE VAILLANT
 
 This library is free software; you can redistribute it and/or
 modify it under the terms of the GNU Lesser General Public
@@ -30,7 +30,7 @@ If not, see <http://www.gnu.org/licenses/>.
 
 (make-class transaction (hash version timestamp input-count inputs output-count outputs lock-time))
 
-(make-class blk (hash header-length version previous-hash merkle-root timestamp bits nonce transaction-count transactions))
+(make-class blk (hash header-length version previous-hash merkle-root timestamp bits nonce transaction-count transactions signature-length signature))
 
 
 (setf *read-default-float-format* 'double-float)

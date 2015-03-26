@@ -77,6 +77,10 @@ To get the list of the unspent transactions of an address:
 
     (rdbms-get-unspent-transactions "PWFNV1Cvq7nQBRyRueuYzwmDNXUGpgNkBC")
 
+To get the list of the addresses with a positive balance at block 12345:
+
+    (rdbms-get-balances-at-block 12345)
+
 ## Donations
 
 If you find this program useful and want to make a donation, you can send coins to the following Peercoin address: **PWFNV1Cvq7nQBRyRueuYzwmDNXUGpgNkBC**.

@@ -1,5 +1,5 @@
 #|
-Copyright 2014 Guillaume LE VAILLANT
+Copyright 2014-2015 Guillaume LE VAILLANT
 
 This library is free software; you can redistribute it and/or
 modify it under the terms of the GNU Lesser General Public
@@ -20,7 +20,7 @@ If not, see <http://www.gnu.org/licenses/>.
 (defsystem :peercoin-blockchain-parser
     :name "peercoin-blockchain-parser"
     :description "Peercoin blockchain parser"
-    :version "0.2"
+    :version "0.3"
     :author "Guillaume LE VAILLANT"
     :license "LGPL-3"
     :depends-on (:cl-json :dbi :drakma :flexi-streams :ironclad :local-time)
