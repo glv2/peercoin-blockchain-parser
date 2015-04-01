@@ -20,6 +20,7 @@ If not, see <http://www.gnu.org/licenses/>.
 (defpackage peercoin-blockchain-parser
   (:use cl)
   (:export rdbms-get-balance
+           rdbms-get-balances-at-block
            rdbms-get-block-count
            rdbms-get-history
            rdbms-get-rich-addresses
