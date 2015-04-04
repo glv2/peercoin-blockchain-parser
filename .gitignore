@@ -2,5 +2,7 @@
 *.FASL
 *.lisp-temp
 
+my-config.lisp
+my-testnet-config.lisp
 test/blk*.sql
 test/blk*.txt

@@ -21,7 +21,13 @@ If not, see <http://www.gnu.org/licenses/>.
 
 
 (defconstant +peercoin-version-byte+ 55)
+(defconstant +peercoin-testnet-version-byte+ 111)
+(defparameter *testnet* nil)
 (defparameter +base58-symbols+ "123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz")
+
+(defun set-testnet (b)
+  "If B is NIL, use main net constants. If not, use test net constants."
+  (setf *testnet* (if b t nil)))
 
 (defun pretty-print-hash (hash)
   "Make a string containing the big-endian hexadecimal representation of the little-endian byte array HASH."
@@ -56,7 +62,9 @@ If not, see <http://www.gnu.org/licenses/>.
 (defun pretty-print-address (hash)
   "Make a string containing the base58 encoding of an address given its HASH."
   (if (and hash (> (length hash) 2))
-      (let ((script (vector +peercoin-version-byte+)))
+      (let ((script (vector (if *testnet*
+                                +peercoin-testnet-version-byte+
+                                +peercoin-version-byte+))))
         (setf script (concatenate 'vector script hash))
         (setf script (coerce script '(vector (unsigned-byte 8))))
         (setf script (concatenate 'vector script (subseq (sha256d script) 0 4)))

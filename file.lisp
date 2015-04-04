@@ -131,13 +131,14 @@ If not, see <http://www.gnu.org/licenses/>.
 ;;; Parser
 
 (defconstant +peercoin-magic-id+ #xe5e9e8e6)
+(defconstant +peercoin-testnet-magic-id+ #xefc0f2cb)
 
 (defun find-magic-id (stream &optional backwards)
   "Find the magic ID."
   (do ((position (file-position stream)))
       ((or (minusp position) (> position (file-length stream))))
     (file-position stream position)
-    (if (= (file-read-unsigned-integer stream 4) +peercoin-magic-id+)
+    (if (= (file-read-unsigned-integer stream 4) (if *testnet* +peercoin-testnet-magic-id+ +peercoin-magic-id+))
         (return position)
         (if backwards
             (decf position)

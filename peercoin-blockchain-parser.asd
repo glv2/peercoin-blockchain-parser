@@ -25,7 +25,7 @@ If not, see <http://www.gnu.org/licenses/>.
     :license "LGPL-3"
     :depends-on (:cl-json :dbi :drakma :flexi-streams :ironclad :local-time)
     :components ((:file "config" :depends-on ("package"))
-                 (:file "file" :depends-on ("config" "hash" "package" "types"))
+                 (:file "file" :depends-on ("config" "hash" "package" "types" "utils"))
                  (:file "hash" :depends-on ("package"))
                  (:file "package")
                  (:file "rdbms" :depends-on ("config" "file" "package" "rpc" "script" "types" "utils"))
