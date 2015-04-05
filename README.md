@@ -24,6 +24,7 @@ It is written in Common Lisp.
 ## Installation
 
 * Install [quicklisp](http://www.quicklisp.org/beta/) to manage the packages.
+* Install the dependencies: ```(ql:quickload '("cl-json" "cl-dbi" "drakma" "flexi-streams" "ironclad" "local-time"))```
 * Copy the source code of the peercoin blockchain parser where you want it to be.
 * Tell your Common Lisp implementation where to find the sources:
   * ```(push "directory-where-the-sources-are/" asdf:*central-registry*)```
@@ -83,4 +84,4 @@ To get the list of the addresses with a positive balance at block 12345:
 
 ## Donations
 
-If you find this program useful and want to make a donation, you can send coins to the following Peercoin address: **PWFNV1Cvq7nQBRyRueuYzwmDNXUGpgNkBC**.
+If you find this program useful and want to make a donation, you can send coins to the following Peercoin address: PWFNV1Cvq7nQBRyRueuYzwmDNXUGpgNkBC.
