@@ -144,7 +144,7 @@ If not, see <http://www.gnu.org/licenses/>.
             (decf position)
             (incf position)))))
 
-(defun file-get-block (h)
+(defun file-get-block (h &optional raw)
   "Get a block in the blockchain given its hash."
   (with-open-file (stream *file-blockchain*
                           :direction :input
@@ -164,7 +164,14 @@ If not, see <http://www.gnu.org/licenses/>.
         (handler-case (file-read-object blk stream)
           (t (e) (return e)))
         (setf (hash blk) blk-hash)
-        (return blk)))))
+        (if raw
+            (let ((position-end (file-position stream))
+                  data)
+              (file-position stream (- position 4)) ; Before magic ID
+              (setf data (file-read-bytes stream (- position-end position)))
+              ;;(file-position stream position-end)
+              (return data))
+            (return blk))))))
 
 (defun file-parse-blockchain (start-callback block-callback end-callback &optional backwards)
   "Call START-CALLBACK, parse the blockchain and pass every block to the BLOCK-CALLBACK function, and pass a list containing the hashes of the blocks to END-CALLBACK."

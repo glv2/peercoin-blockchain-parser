@@ -28,6 +28,7 @@ If not, see <http://www.gnu.org/licenses/>.
                  (:file "file" :depends-on ("config" "hash" "package" "types" "utils"))
                  (:file "hash" :depends-on ("package"))
                  (:file "package")
+                 (:file "raw" :depends-on ("file" "package"))
                  (:file "rdbms" :depends-on ("config" "file" "package" "rpc" "script" "types" "utils"))
                  (:file "rpc" :depends-on ("config" "hash" "package" "types"))
                  (:file "script" :depends-on ("hash" "package"))

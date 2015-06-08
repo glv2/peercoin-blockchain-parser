@@ -1,5 +1,5 @@
 #|
-Copyright 2014 Guillaume LE VAILLANT
+Copyright 2015 Guillaume LE VAILLANT
 
 This library is free software; you can redistribute it and/or
 modify it under the terms of the GNU Lesser General Public
@@ -17,18 +17,15 @@ If not, see <http://www.gnu.org/licenses/>.
 |#
 
 
-(defpackage peercoin-blockchain-parser
-  (:use cl)
-  (:export set-testnet
-           raw-extract-blocks-from-blockchain
-           rdbms-get-balance
-           rdbms-get-balances-at-block
-           rdbms-get-block-count
-           rdbms-get-history
-           rdbms-get-rich-addresses
-           rdbms-get-unspent-transactions
-           rdbms-initialize-database
-           rdbms-update-database-from-blockchain
-           rdbms-update-database-from-rpc
-           sql-make-script-from-blockchain
-           txt-make-file-from-blockchain))
+(in-package :peercoin-blockchain-parser)
+
+
+(defun raw-extract-blocks-from-blockchain (hashes dat-file)
+  "Extract the raw data of the blocks with the specified HASHES from the blockchain and write them to DAT-FILE."
+  (with-open-file (dat dat-file
+                       :element-type '(unsigned-byte 8)
+                       :direction :output
+                       :if-exists :supersede)
+    (dolist (hash hashes)
+      (let ((data (file-get-block hash t)))
+        (write-sequence data dat)))))
