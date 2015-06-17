@@ -168,8 +168,7 @@ If not, see <http://www.gnu.org/licenses/>.
             (let ((position-end (file-position stream))
                   data)
               (file-position stream (- position 4)) ; Before magic ID
-              (setf data (file-read-bytes stream (- position-end position)))
-              ;;(file-position stream position-end)
+              (setf data (file-read-bytes stream (- position-end (- position 4))))
               (return data))
             (return blk))))))
 
