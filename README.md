@@ -49,6 +49,10 @@ To export the data from the blockchain to a text file:
 
     (txt-make-file-from-blockchain "peercoin-blockchain.txt")
 
+To export raw blocks from the blockchain to a file:
+
+    (raw-extract-blocks-from-blockchain '("hash1" "hash2" ...) "blocks.dat")
+
 To create a database from scratch using a running Peercoin daemon:
 
     (rdbms-initialize-database)
