@@ -19,7 +19,15 @@ If not, see <http://www.gnu.org/licenses/>.
 
 (defpackage peercoin-blockchain-parser
   (:use cl)
-  (:export set-testnet
+  (:export *file-blockchain*
+           *rdbms-driver*
+           *rdbms-database*
+           *rdbms-username*
+           *rdbms-password*
+           *rpc-server-url*
+           *rpc-username*
+           *rpc-password*
+           set-testnet
            raw-extract-blocks-from-blockchain
            rdbms-get-balance
            rdbms-get-balances-at-block
